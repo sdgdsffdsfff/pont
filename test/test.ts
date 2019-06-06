@@ -59,13 +59,13 @@ describe('pont功能测试', () => {
                         200000 入参不合法
                         400000 权限不足
                         500000 服务失败 */
-                    transCode?: number;
+                    transCode: number;
 
                     /** 错误信息。成功：“成功” 失败：“失败对应的msg” */
-                    transMessage?: string;
+                    transMessage: string;
 
                     /** 信息详情” */
-                    transMessageDetail?: string;
+                    transMessageDetail: string;
                 }
         `);
     assert.ok(apidts.includes(rightCode));
@@ -78,7 +78,7 @@ describe('pont功能测试', () => {
   });
 
   it('api.d.ts should translate chinese of baseClass to english', () => {
-    let dict: { [key: string]: string } = Translator.loadDict();
+    let dict: { [key: string]: string } = Translator.dict;
     ['通用请求参数token', '输出参数vo', '查询参数', 'abc输出参数', ' 中英文 混合 带 空格 Vo '].forEach(cnKey => {
       const enKey = dict[cnKey];
       assert.ok(enKey);

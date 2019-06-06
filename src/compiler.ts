@@ -44,6 +44,7 @@ class Parser {
     return args;
   }
 
+  // 语法分析
   parseTemplate() {
     const name = this.eat('Identifier').value;
     let templateArgs = [] as any[];
@@ -71,11 +72,11 @@ export function parseAst2StandardDataType(
   const { name, templateArgs } = ast;
   let typeName = name;
 
-  if (name === 'List') {
+  if (['List', 'Collection'].includes(name)) {
     typeName = 'Array';
   }
 
-  if (name === 'long') {
+  if (['long', 'double'].includes(name)) {
     typeName = 'number';
   }
 
@@ -99,6 +100,7 @@ export function parseAst2StandardDataType(
 }
 
 export function compileTemplate(template: string) {
+  // 词法分析
   if (template.startsWith('#/definitions/')) {
     template = template.slice('#/definitions/'.length);
   }
@@ -106,7 +108,7 @@ export function compileTemplate(template: string) {
     return null;
   }
 
-  const Identifier = /^[a-zA-Z_][a-zA-Z_0-9]*/;
+  const Identifier = /^[a-zA-Z_][a-zA-Z_0-9-]*/;
   const PreTemplate = /^«/;
   const EndTemplate = /^»/;
   const Comma = /^,/;
