@@ -17,9 +17,7 @@ Pont 把 swagger、rap、dip 等多种接口文档平台，转换成 Pont 元数
 
 ![](https://img.alicdn.com/tfs/TB15pZGI6TpK1RjSZKPXXa3UpXa-1584-1090.png)
 
-
 ### 沉浸式接口开发
-
 
 接口检索：
 
@@ -28,16 +26,13 @@ Pont 把 swagger、rap、dip 等多种接口文档平台，转换成 Pont 元数
 接口开发：
 ![pont.gif](https://img.alicdn.com/tfs/TB1Y6w8blKw3KVjSZFOXXarDVXa-1546-1016.gif)
 
-
 ### 联调维护
 
 实时发现后端接口更新：
-![屏幕快照 2019-05-28 00.14.41.png](https://img.alicdn.com/tfs/TB1xE71bfWG3KVjSZFgXXbTspXa-1792-470.png) 
-
+![屏幕快照 2019-05-28 00.14.41.png](https://img.alicdn.com/tfs/TB1xE71bfWG3KVjSZFgXXbTspXa-1792-470.png)
 
 更新接口层后，可迅速定位接口调用代码，进行调用修改。
 ![屏幕快照 2019-05-28 00.13.34.png](https://img.alicdn.com/tfs/TB1PPE8blKw3KVjSZFOXXarDVXa-850-290.png)
-
 
 ## 快速开始
 
@@ -67,7 +62,7 @@ Pont 把 swagger、rap、dip 等多种接口文档平台，转换成 Pont 元数
 
 值类型：字符串
 
-描述：指定自定义代码生成器的路径（使用相对路径指定）。一旦指定，pont 将即刻生成一份默认的自定义代码生成器。自定义代码生成器是一份 ts 文件，通过覆盖默认的代码生成器，来自定义生成代码。默认的代码生成器包含两个类，一个负责管理目录结构，一个负责管理目录结构每个文件如何生成代码。自定义代码生成器通过继承这两个类（类型完美，可以查看提示和含义），覆盖对应的代码来达到自定义的目的。具体使用方法请参看[自定义代码生成器文档](./Template.md)。
+描述：指定自定义代码生成器的路径（使用相对路径指定）。一旦指定，pont 将即刻生成一份默认的自定义代码生成器。自定义代码生成器是一份 ts 文件，通过覆盖默认的代码生成器，来自定义生成代码。默认的代码生成器包含两个类，一个负责管理目录结构，一个负责管理目录结构每个文件如何生成代码。自定义代码生成器通过继承这两个类（类型完美，可以查看提示和含义），覆盖对应的代码来达到自定义的目的。具体使用方法请参看[自定义代码生成器文档](./packages/pont-core/Template.md)。
 
 示例：可以参看示例 demo 中的 template。
 
@@ -88,6 +83,19 @@ Pont 把 swagger、rap、dip 等多种接口文档平台，转换成 Pont 元数
 值类型：array
 
 描述：配置每个数据来源
+
+配置项：
+
+```javascript
+{
+  "originType": "SwaggerV2 | SwaggerV3", // 注：暂不支持 SwaggerV1
+  "originUrl": string,
+  "name": string,
+  "usingOperationId": boolean,
+  "transformPath"?: string,
+  "fetchMethodPath"?: string
+}
+```
 
 示例：
 
@@ -116,6 +124,33 @@ export default function(dataSource: StandardDataSource): StandardDataSource {
   dataSource.mods = dataSource.mods.filter(mod => mod.name !== 'user');
 
   return dataSource;
+}
+```
+
+### fetchMethodPath
+
+值类型：string
+
+描述： 可选项。用于 Swagger 数据源需要登录才能请求成功的场景，可指定获取 Swagger 源数据的方法。默认为 node-fetch 的 fetch 方法，可通过自定义 fetch 方法获取带鉴权的接口的文档
+
+示例：
+
+```javascript
+import axios from 'axios';
+
+export default async function(url: string): Promise<string> {
+  const { data } = await axios.post('/api/login', {
+    username: 'my_name',
+    password: '123456'
+  });
+
+  return axios
+    .get(url, {
+      headers: {
+        Authorization: data.token
+      }
+    })
+    .then(res => JSON.stringify(res.data));
 }
 ```
 
@@ -184,13 +219,35 @@ export default function(dataSource: StandardDataSource): StandardDataSource {
 
 ## 常见答疑问题
 
-- 1、demo中，生成代码的 pontFetch 函数，是要自己实现的吗？
+- 1、demo 中，生成代码的 pontFetch 函数，是要自己实现的吗？
 
   答：pontFetch 是用户自己项目的请求公共方法。因为每个项目的接口有自己的业务逻辑，比如如何判断接口返回的结果是否正确，所以 pont 的默认模板并没有自己实现一套 fetch 方法。另外 Pont 生成的代码是可以用自定义模板配置的。可以在模板上更改 pontFetch 的引用路径和名字。
 
+- 2、nestjs 搭配的Swagger JSON生成出来的pont文件为什么没有mods?
+
+  答：nestjs 中的 Swagger 必须在每个 Controller 上添加 ApiUseTags 装饰器，并且在每个控制器的方法上添加 ApiOperation 装饰器 才能正确输出带 Tags 以及 operationId 的 Swagger JSON。Tags 和 operationId 是 pont 必需的（@nestjs/swagger 自动生成的 default Tags 暂时不被兼容）。
+  示例如下
+  ```
+  import { Controller } from '@nestjs/common';
+  import { ApiUseTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
+
+  @ApiUseTags('pet')
+  @Controller('pet')
+  export class PetController {
+    @ApiOperation({ title: 'getDog', operationId: 'getDog' })
+    @Get()
+    getDog() {}
+  }
+  ```
+
+- 3、API、defs 全局变量找不到
+
+     答：将 pont 生成的 api.d.ts 塞到 tsconfig.json 中的 includes 数组最前面。并在项目入口处 import pont 生成的入口文件。
+     
+
 ## 其它接口平台接入
 
-目前 pont 暂时只支持 [Swagger V2](https://swagger.io/) 数据源，V1 和 V3 正在开发中。目前只需要在 scripts 中添加对应的数据格式转换文件，把对应数据格式转换为 pont 标准格式，即可适配新的数据源类型。希望社区可以踊跃贡献代码，接入更多类型的数据源！
+目前 pont 支持 [Swagger](https://swagger.io/) V1 V2 V3 三种数据源。其他类型数据源只需要在 scripts 中添加对应的数据格式转换文件，把对应数据格式转换为 pont 标准格式，即可适配新的数据源类型。希望社区可以踊跃贡献代码，接入更多类型的数据源！
 
 ## 钉钉用户群
 
